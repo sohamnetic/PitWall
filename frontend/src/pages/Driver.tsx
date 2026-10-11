@@ -4,7 +4,7 @@ import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YA
 import { isNotFound, useDriver } from '../api/hooks'
 import type { DriverResult } from '../api/types'
 import { Card, ErrorState, Loading, StatTile, TooltipPanel } from '../components/ui'
-import { STAGE_LABEL, num, pct } from '../format'
+import { STAGE_LABEL, chance, num } from '../format'
 import { useAccent } from '../accent'
 import { teamColor, teamName } from '../teams'
 import { useThemeColors } from '../theme'
@@ -75,7 +75,7 @@ export default function Driver() {
         <StatTile
           label="Predictions made"
           value={String(d.predictions.length)}
-          detail={d.predictions[0] ? `latest: ${pct(d.predictions[0].p_win)} to win` : 'none yet'}
+          detail={d.predictions[0] ? `latest: ${chance(d.predictions[0].p_win)} to win` : 'none yet'}
         />
       </div>
 
@@ -139,8 +139,8 @@ export default function Driver() {
                     </td>
                     <td className="px-2 text-ink-2">{STAGE_LABEL[p.stage]}</td>
                     <td className="px-2 text-right">P{p.pred_rank}</td>
-                    <td className="px-2 text-right">{pct(p.p_win)}</td>
-                    <td className="px-2 text-right">{pct(p.p_podium)}</td>
+                    <td className="px-2 text-right">{chance(p.p_win)}</td>
+                    <td className="px-2 text-right">{chance(p.p_podium)}</td>
                     <td className="px-2 pr-4 text-right sm:pr-0">{p.actual_position ? `P${p.actual_position}` : '–'}</td>
                   </tr>
                 ))}

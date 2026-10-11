@@ -7,7 +7,7 @@ from sqlalchemy import Engine
 
 from f1p.api import queries
 from f1p.api.deps import get_db
-from f1p.api.schemas import RaceDetail, RaceSummary, Snapshot, Stage
+from f1p.api.schemas import RaceDetail, RaceSummary, Snapshot, Stage, Standings
 
 router = APIRouter(tags=["races"])
 
@@ -23,6 +23,15 @@ def season_races(year: int, db: Engine = Depends(get_db)):
     if not races:
         raise HTTPException(404, f"No races for season {year}")
     return races
+
+
+@router.get("/seasons/{year}/standings", response_model=Standings)
+def season_standings(year: int, db: Engine = Depends(get_db)):
+    """Drivers' and constructors' championships, with points after every round."""
+    table = queries.standings(db, year)
+    if table is None:
+        raise HTTPException(404, f"No races for season {year}")
+    return table
 
 
 @router.get("/races/next", response_model=RaceSummary)

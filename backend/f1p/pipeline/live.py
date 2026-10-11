@@ -125,6 +125,8 @@ def predict(
             made_before_cutoff=now < cut,
             model_trained_through=model.meta["trained_through"],
             temperature=model.temperature,
+            incident_rate=model.incidents[0],
+            incident_drop=model.incidents[1],
             model_version=__version__,
         )
         db.add(snap)

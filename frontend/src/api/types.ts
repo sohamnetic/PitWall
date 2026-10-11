@@ -135,6 +135,44 @@ export interface StageBacktest {
   summary: BacktestModelSummary[]
   by_season: SeasonPoint[]
   calibration: Record<string, CalibrationBin[]>
+  plain: PlainSummary | null
+}
+
+export interface VersusCount {
+  model: number
+  baseline: number
+}
+
+export interface PlainSeason {
+  season: number
+  races: number
+  h2h_model: number
+  h2h_baseline: number
+  h2h_tie: number
+  model_winners: number
+  baseline_winners: number
+  model_order: number
+  baseline_order: number
+}
+
+export interface HonestyBand {
+  low: number
+  high: number
+  said: number
+  happened: number
+  n: number
+}
+
+/** The backtest against the obvious guess, in counts a casual reader can follow. */
+export interface PlainSummary {
+  baseline: string
+  races: number
+  head_to_head: { model: number; baseline: number; tie: number }
+  winners: VersusCount
+  podium_drivers: VersusCount
+  avg_miss: VersusCount
+  seasons: PlainSeason[]
+  honesty: HonestyBand[]
 }
 
 export interface TrackRecordEntry {
@@ -150,6 +188,9 @@ export interface TrackRecordEntry {
   baseline_name: string | null
   baseline_spearman: number | null
   baseline_win_logloss: number | null
+  pick: DriverRef | null
+  pick_p_win: number | null
+  winner: DriverRef | null
 }
 
 export interface Performance {
@@ -289,4 +330,46 @@ export interface LeaderboardEntry {
   points: number
   races: number
   exact: number
+}
+
+export interface FormResult {
+  round: number
+  text: string
+}
+
+export interface DriverStanding {
+  position: number
+  driver: DriverRef
+  points: number
+  wins: number
+  podiums: number
+  gap: number
+  in_contention: boolean
+  form: FormResult[]
+}
+
+export interface ConstructorStanding {
+  position: number
+  team_id: string
+  team_name: string
+  points: number
+  wins: number
+  podiums: number
+  gap: number
+  in_contention: boolean
+  drivers: DriverRef[]
+}
+
+export interface Standings {
+  season: number
+  rounds_total: number
+  rounds_done: number
+  points_left_driver: number
+  points_left_team: number
+  provisional: boolean
+  rounds: { round: number; race_id: string; name: string }[]
+  drivers: DriverStanding[]
+  constructors: ConstructorStanding[]
+  driver_progression: Record<string, number[]>
+  team_progression: Record<string, number[]>
 }

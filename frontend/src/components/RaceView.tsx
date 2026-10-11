@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { isNotFound, useRace, useSnapshot } from '../api/hooks'
 import type { PredictionRow, RaceDetail, Score, Snapshot, Stage } from '../api/types'
-import { BASELINE_LABEL, STAGE_LABEL, localTime, num, pct } from '../format'
+import { BASELINE_LABEL, STAGE_LABEL, chance, localTime, num, pct } from '../format'
 import { teamColor } from '../teams'
 import { useAccent } from '../accent'
 import { usePageTitle } from '../usePageTitle'
+import CircuitMap from './CircuitMap'
 import Countdown from './Countdown'
 import PositionHeatmap from './PositionHeatmap'
 import PrePostChart from './PrePostChart'
@@ -35,7 +36,7 @@ export default function RaceView({ raceId }: { raceId: string }) {
 
   return (
     <div className="space-y-8">
-      <RaceHero d={d} />
+      <RaceHero d={d} color={snap.data ? teamColor(snap.data.rows[0]?.driver.team_id) : undefined} />
 
       {!hasAny ? (
         <Card>
@@ -98,7 +99,7 @@ export default function RaceView({ raceId }: { raceId: string }) {
   )
 }
 
-function RaceHero({ d }: { d: RaceDetail }) {
+function RaceHero({ d, color }: { d: RaceDetail; color?: string }) {
   const r = d.race
   const [place, ...rest] = r.name.replace(' Grand Prix', '|Grand Prix').split('|')
   return (
@@ -107,6 +108,14 @@ function RaceHero({ d }: { d: RaceDetail }) {
       <div className="chequer pointer-events-none absolute right-0 top-0 h-40 w-64 opacity-[0.07]" aria-hidden />
       <div className="speed-stripes pointer-events-none absolute inset-0 opacity-70" aria-hidden />
       <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/20 blur-3xl" aria-hidden />
+      {/* The circuit, with a car in the favourite's team colour lapping it. */}
+      <CircuitMap
+        circuitId={r.circuit_id}
+        label={r.circuit_name}
+        color={color}
+        lap="always"
+        className="pointer-events-none absolute right-3 top-8 h-24 w-32 text-ink opacity-40 sm:right-8 sm:top-10 sm:h-44 sm:w-60 sm:opacity-90 lg:h-52 lg:w-72"
+      />
       <div className="relative">
         <div className="eyebrow flex flex-wrap items-center gap-x-2">
           <span>{r.season} season</span>
@@ -186,7 +195,7 @@ function PodiumForecast({ s }: { s: Snapshot }) {
           label="Favourite to win"
           value={
             <span>
-              {pct(fav.p_win)} <span className="text-lg text-ink-2">{fav.driver.code}</span>
+              {chance(fav.p_win)} <span className="text-lg text-ink-2">{fav.driver.code}</span>
             </span>
           }
           detail={`${fav.driver.name} · expected P${num(fav.expected_pos, 1)}`}
@@ -194,7 +203,7 @@ function PodiumForecast({ s }: { s: Snapshot }) {
         />
         <StatTile
           label="Upset chance"
-          value={pct(1 - fav.p_win)}
+          value={chance(1 - fav.p_win)}
           detail={`someone other than ${fav.driver.code} wins · ${contenders} driver${contenders === 1 ? '' : 's'} with a 10%+ shot`}
         />
       </div>
@@ -209,7 +218,7 @@ function PodiumStep({ row, place, height }: { row: PredictionRow; place: number;
       <div className="display text-2xl sm:text-4xl">{row.driver.code}</div>
       <div className="mt-0.5 hidden max-w-full truncate text-xs text-ink-2 sm:block">{row.driver.name}</div>
       <div className="mt-1 text-xs text-ink-2">
-        <span className="tabular font-semibold text-ink">{pct(row.p_podium)}</span> podium
+        <span className="tabular font-semibold text-ink">{chance(row.p_podium)}</span> podium
       </div>
       <div
         className={`relative mt-3 w-full rounded-t-xl border border-b-0 border-line-strong ${height}`}

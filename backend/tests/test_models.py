@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 from scipy.stats import spearmanr
 
-from f1p.models.calibrate import fit_temperature
+from f1p.models.calibrate import fit_incidents, fit_temperature
 from f1p.models.simulate import plackett_luce_loglik, simulate
 
 
@@ -43,6 +43,39 @@ def test_fit_temperature_recovers_true_noise():
         order = np.argsort(-(scores / true_t + rng.gumbel(size=10)))  # exact PL draw
         races.append((scores, order))
     assert fit_temperature(races) == pytest.approx(true_t, rel=0.15)
+
+
+def test_no_incidents_reproduces_plain_simulation():
+    scores, p_dnf = np.array([2.0, 1.0, 0.0, -1.0]), np.full(4, 0.1)
+    np.testing.assert_array_equal(
+        simulate(scores, p_dnf, 1.0, 5000), simulate(scores, p_dnf, 1.0, 5000, incident_rate=0.0)
+    )
+
+
+def test_incidents_fill_the_gap_behind_a_dominant_driver():
+    # A dominant driver who doesn't retire: without bad days, P6-P8 never happen.
+    scores = np.array([8.0, 2, 1.5, 1, 0.5, 0, -0.5, -1, -1.5, -2])
+    plain = simulate(scores, np.zeros(10), 1.0, 20_000)
+    bad_days = simulate(scores, np.zeros(10), 1.0, 20_000, incident_rate=0.1, incident_drop=4.0)
+    assert plain[0, 5:8].sum() == 0
+    assert bad_days[0, 5:8].sum() > 0.003
+    np.testing.assert_allclose(bad_days.sum(axis=0), 1, atol=1e-9)
+
+
+def test_fit_incidents_finds_bad_days_only_when_present():
+    rng = np.random.default_rng(3)
+
+    def races(rate):
+        out = []
+        for _ in range(150):
+            scores = rng.normal(0, 2, 12)
+            keys = scores + rng.gumbel(size=12)
+            keys -= (rng.random(12) < rate) * rng.exponential(4.0, 12)
+            out.append((scores, np.argsort(-keys)))
+        return out
+
+    assert fit_incidents(races(0.15), 1.0)[0] >= 0.07
+    assert fit_incidents(races(0.0), 1.0)[0] <= 0.02
 
 
 @pytest.fixture

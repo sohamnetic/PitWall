@@ -73,3 +73,10 @@ export const ArrowDown = () => (
     <path d="M12 5v14M6 13l6 6 6-6" />
   </Icon>
 )
+
+export const PodiumIcon = () => (
+  <Icon>
+    <path d="M3 20h18M9 20V9h6v11M3 20v-6h6M15 20v-8h6v8" />
+    <path d="M12 3.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 5.6l2-.3.9-1.8Z" />
+  </Icon>
+)

@@ -150,12 +150,57 @@ class CalibrationBin(BaseModel):
     n: int
 
 
+class VersusCount(BaseModel):
+    model: float
+    baseline: float
+
+
+class HeadToHead(BaseModel):
+    model: int = Field(description="Races where the model's order was closer to the result.")
+    baseline: int
+    tie: int
+
+
+class PlainSeason(BaseModel):
+    season: int
+    races: int
+    h2h_model: int
+    h2h_baseline: int
+    h2h_tie: int
+    model_winners: int
+    baseline_winners: int
+    model_order: float
+    baseline_order: float
+
+
+class HonestyBand(BaseModel):
+    low: float
+    high: float
+    said: float = Field(description="Average probability the model gave in this band.")
+    happened: float = Field(description="How often those events actually happened.")
+    n: int
+
+
+class PlainSummary(BaseModel):
+    """The backtest against the obvious guess (grid order / championship order), in counts."""
+
+    baseline: str
+    races: int
+    head_to_head: HeadToHead
+    winners: VersusCount
+    podium_drivers: VersusCount = Field(description="Podium finishers named in the top 3, of 3.")
+    avg_miss: VersusCount = Field(description="Average places between predicted and actual.")
+    seasons: list[PlainSeason]
+    honesty: list[HonestyBand] = Field(description="Win, podium and points chances, pooled.")
+
+
 class StageBacktest(BaseModel):
     summary: list[BacktestModelSummary]
     by_season: list[SeasonPoint]
     calibration: dict[str, list[CalibrationBin]] = Field(
         description="Model's reliability tables for 'win', 'podium' and 'points'."
     )
+    plain: PlainSummary | None = None
 
 
 class TrackRecordEntry(BaseModel):
@@ -171,6 +216,9 @@ class TrackRecordEntry(BaseModel):
     baseline_name: str | None
     baseline_spearman: float | None
     baseline_win_logloss: float | None
+    pick: DriverRef | None = Field(None, description="The model's favourite.")
+    pick_p_win: float | None = None
+    winner: DriverRef | None = Field(None, description="Official winner, once published.")
 
 
 class Performance(BaseModel):
@@ -325,3 +373,53 @@ class LeaderboardEntry(BaseModel):
     points: int
     races: int
     exact: int = Field(description="Podium positions called exactly.")
+
+
+class FormResult(BaseModel):
+    round: int
+    text: str = Field(description="Finishing position, or R / D / W ... when not classified.")
+
+
+class DriverStanding(BaseModel):
+    position: int
+    driver: DriverRef
+    points: float
+    wins: int
+    podiums: int
+    gap: float = Field(description="Points behind the leader.")
+    in_contention: bool = Field(description="Can still mathematically catch the leader.")
+    form: list[FormResult] = Field(description="Last five Grands Prix, oldest first.")
+
+
+class ConstructorStanding(BaseModel):
+    position: int
+    team_id: str
+    team_name: str
+    points: float
+    wins: int
+    podiums: int
+    gap: float
+    in_contention: bool
+    drivers: list[DriverRef]
+
+
+class StandingsRound(BaseModel):
+    round: int
+    race_id: str
+    name: str
+
+
+class Standings(BaseModel):
+    season: int
+    rounds_total: int
+    rounds_done: int = Field(description="Grands Prix run so far.")
+    points_left_driver: int = Field(description="Most points one driver can still score.")
+    points_left_team: int
+    provisional: bool = Field(description="Includes results not yet officially published.")
+    rounds: list[StandingsRound] = Field(description="Rounds with any points scored so far.")
+    drivers: list[DriverStanding]
+    constructors: list[ConstructorStanding]
+    driver_progression: dict[str, list[float]] = Field(
+        description="Points total after each of `rounds`, per driver id."
+    )
+    team_progression: dict[str, list[float]]

@@ -38,6 +38,8 @@ class Inputs:
     snapshot_id: int | None
     stage: str
     grid: list[str] | None = None
+    incident_rate: float = 0.0
+    incident_drop: float = 0.0
 
 
 _lock = threading.Lock()
@@ -96,7 +98,8 @@ def _snapshot_inputs(engine: Engine, race_id: str, stage: str | None) -> Inputs:
     for st in stages:
         snap = pd.read_sql(
             text(
-                "select id, temperature from predictions where race_id = :r and stage = :s "
+                "select id, temperature, incident_rate, incident_drop from predictions "
+                "where race_id = :r and stage = :s "
                 "order by id desc limit 1"
             ),
             engine,
@@ -126,6 +129,8 @@ def _snapshot_inputs(engine: Engine, race_id: str, stage: str | None) -> Inputs:
             source="snapshot",
             snapshot_id=pid,
             stage=st,
+            incident_rate=float(snap["incident_rate"].fillna(0.0).iloc[0]),
+            incident_drop=float(snap["incident_drop"].fillna(0.0).iloc[0]),
         )
     raise SimulationUnavailable(f"no prediction for {race_id} yet")
 
@@ -139,7 +144,7 @@ def _scenario_inputs(engine: Engine, race_id: str, scenario: sc.Scenario) -> Inp
     base, gaps = _base_rows(engine, race_id)
     rows = sc.apply(base, scenario, gaps)
     model = _post_model()
-    scores, p_dnf, temperature = sc.simulation_inputs(model, rows, scenario)
+    scores, p_dnf, temperature, rate, drop = sc.simulation_inputs(model, rows, scenario)
     grid = list(rows.sort_values("grid_pct")["driver_id"])
     return Inputs(
         driver_ids=list(rows["driver_id"]),
@@ -151,6 +156,8 @@ def _scenario_inputs(engine: Engine, race_id: str, scenario: sc.Scenario) -> Inp
         snapshot_id=None,
         stage="post",
         grid=grid,
+        incident_rate=rate,
+        incident_drop=drop,
     )
 
 
@@ -190,7 +197,10 @@ def run(
     else:
         inp = _scenario_inputs(engine, race_id, scenario)
 
-    finish, retired = simulate_races(inp.scores, inp.p_dnf, inp.temperature, n_sims, seed=0)
+    finish, retired = simulate_races(
+        inp.scores, inp.p_dnf, inp.temperature, n_sims, seed=0,
+        incident_rate=inp.incident_rate, incident_drop=inp.incident_drop,
+    )  # fmt: skip
     pred = RacePrediction(race_id, inp.driver_ids, position_probs(finish))
     field_ = qs.Field(inp.driver_ids, inp.teams, finish, retired)
     actual = _actual_field(engine, race_id, inp) if status["completed"] else None

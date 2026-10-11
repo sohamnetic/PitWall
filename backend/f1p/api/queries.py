@@ -297,6 +297,74 @@ def _score(engine: Engine, prediction_id: int) -> dict | None:
 # --------------------------------------------------------------------------- performance
 
 
+# The "obvious guess" a fan would make, per stage: the comparison on the plain-English page.
+PLAIN_BASELINE = {"post": "grid", "pre": "championship"}
+HONESTY_BANDS = [0.0, 0.05, 0.2, 0.4, 0.6, 0.8, 0.95, 1.0]
+
+
+def _plain(stage: str, races: pd.DataFrame, drivers: pd.DataFrame | None) -> dict | None:
+    """The backtest in everyday terms: model vs the obvious guess, race by race."""
+    base = PLAIN_BASELINE[stage]
+    m = races[races["model"] == "model"].set_index("race_id")
+    b = races[races["model"] == base].set_index("race_id").reindex(m.index)
+    if m.empty or b["spearman"].isna().all():
+        return None
+    diff = m["spearman"] - b["spearman"]
+
+    def h2h(d: pd.Series) -> dict:
+        return {
+            "model": int((d > 1e-9).sum()),
+            "baseline": int((d < -1e-9).sum()),
+            "tie": int((d.abs() <= 1e-9).sum()),
+        }
+
+    seasons = []
+    for season, idx in m.groupby("season").groups.items():
+        seasons.append(
+            {
+                "season": int(season),
+                "races": len(idx),
+                **{f"h2h_{k}": v for k, v in h2h(diff.loc[idx]).items()},
+                "model_winners": int(m.loc[idx, "winner_hit"].sum()),
+                "baseline_winners": int(b.loc[idx, "winner_hit"].sum()),
+                "model_order": float(m.loc[idx, "spearman"].mean()),
+                "baseline_order": float(b.loc[idx, "spearman"].mean()),
+            }
+        )
+
+    honesty = []
+    if drivers is not None:
+        d = drivers[drivers["model"] == "model"]
+        said = pd.concat([d["p_win"], d["p_podium"], d["p_points"]], ignore_index=True)
+        happened = pd.concat([d["won"], d["podium"], d["in_points"]], ignore_index=True)
+        band = pd.cut(said, HONESTY_BANDS, include_lowest=True)
+        t = pd.DataFrame({"said": said, "happened": happened, "band": band})
+        for interval, g in t.groupby("band", observed=True):
+            honesty.append(
+                {
+                    "low": float(interval.left if interval.left > 0 else 0.0),
+                    "high": float(interval.right),
+                    "said": float(g["said"].mean()),
+                    "happened": float(g["happened"].mean()),
+                    "n": len(g),
+                }
+            )
+
+    return {
+        "baseline": base,
+        "races": len(m),
+        "head_to_head": h2h(diff),
+        "winners": {"model": int(m["winner_hit"].sum()), "baseline": int(b["winner_hit"].sum())},
+        "podium_drivers": {
+            "model": float(m["top3_hit"].mean() * 3),
+            "baseline": float(b["top3_hit"].mean() * 3),
+        },
+        "avg_miss": {"model": float(m["pos_mae"].mean()), "baseline": float(b["pos_mae"].mean())},
+        "seasons": seasons,
+        "honesty": honesty,
+    }
+
+
 def _backtest(stage: str) -> dict | None:
     races_path = config.DATA_DIR / "backtest" / f"{stage}_races.parquet"
     drivers_path = config.DATA_DIR / "backtest" / f"{stage}_drivers.parquet"
@@ -308,9 +376,9 @@ def _backtest(stage: str) -> dict | None:
     by_season = races.groupby(["model", "season"])[["spearman", "win_logloss"]].mean()
 
     calibration = {}
-    if drivers_path.exists():
-        d = pd.read_parquet(drivers_path)
-        d = d[d["model"] == "model"]
+    all_drivers = pd.read_parquet(drivers_path) if drivers_path.exists() else None
+    if all_drivers is not None:
+        d = all_drivers[all_drivers["model"] == "model"]
         for name, prob, outcome in (("win", "p_win", "won"), ("podium", "p_podium", "podium"),
                                     ("points", "p_points", "in_points")):  # fmt: skip
             t = calibration_table(d, prob, outcome, bins=10)
@@ -325,6 +393,7 @@ def _backtest(stage: str) -> dict | None:
             for (m, s), row in by_season.iterrows()
         ],
         "calibration": calibration,
+        "plain": _plain(stage, races, all_drivers),
     }
 
 
@@ -338,9 +407,23 @@ def track_record(engine: Engine) -> list[dict]:
            left join prediction_scores s on s.prediction_id = p.id
            order by r.season, r.round, p.id""",
     )
+    picks = _df(
+        engine,
+        """select prediction_id, driver_id, constructor_id, p_win from prediction_rows
+           where pred_rank = 1""",
+    ).set_index("prediction_id")
+    winners = _df(
+        engine,
+        """select race_id, driver_id, constructor_id from results
+           where session = 'R' and position_order = 1
+             and coalesce(source, 'jolpica') = 'jolpica'""",
+    ).set_index("race_id")
+    refs, teams = driver_refs(engine), team_names(engine)
     out = []
     for r in _records(df):
         base = json.loads(r["baseline_metrics"]) if r["baseline_metrics"] else {}
+        pick = picks.loc[r["id"]] if r["id"] in picks.index else None
+        won = winners.loc[r["race_id"]] if r["race_id"] in winners.index else None
         out.append(
             {
                 "snapshot_id": r["id"], "race_id": r["race_id"], "race_name": r["name"],
@@ -350,6 +433,11 @@ def track_record(engine: Engine) -> list[dict]:
                 "baseline_name": r["baseline_name"],
                 "baseline_spearman": base.get("spearman"),
                 "baseline_win_logloss": base.get("win_logloss"),
+                "pick": None if pick is None else driver_ref(
+                    refs, teams, pick["driver_id"], pick["constructor_id"]),
+                "pick_p_win": None if pick is None else float(pick["p_win"]),
+                "winner": None if won is None else driver_ref(
+                    refs, teams, won["driver_id"], won["constructor_id"]),
             }
         )  # fmt: skip
     return out
@@ -423,4 +511,132 @@ def driver_detail(engine: Engine, driver_id: str, season: int, n_recent: int = 1
         "season_points": float(pts),
         "recent_results": _records(recent),
         "predictions": _records(preds),
+    }
+
+
+# ----------------------------------------------------------------------------- standings
+
+
+def _max_points(season: int) -> tuple[int, int, int, int]:
+    """Most points one driver / one team can score from a Grand Prix and from a sprint."""
+    fastest_lap = 1 if 2019 <= season <= 2024 else 0
+    sprint_driver, sprint_team = (8, 15) if season >= 2022 else (3, 5) if season == 2021 else (0, 0)
+    return 25 + fastest_lap, 25 + 18 + fastest_lap, sprint_driver, sprint_team
+
+
+def _ranked(df: pd.DataFrame, key: str, gp: pd.DataFrame) -> pd.DataFrame:
+    """Order by points, ties broken by countback (most wins, then most seconds, ...)."""
+    counts = gp.pivot_table(index=key, columns="position", values="round", aggfunc="count")
+    counts = counts.reindex(df.index).fillna(0)
+    order = df[["points"]].join(counts)
+    order = order.sort_values(list(order.columns), ascending=False, kind="stable")
+    return df.loc[order.index]
+
+
+def standings(engine: Engine, season: int) -> dict | None:
+    """Drivers' and constructors' championships so far, with points after every round."""
+    cal = _df(
+        engine,
+        "select id, round, name, weekend_format from races where season = :s order by round",
+        s=season,
+    )
+    if cal.empty:
+        return None
+    res = _df(
+        engine,
+        """select ra.round, r.session, r.driver_id, r.constructor_id, r.position,
+                  r.position_text, r.points, coalesce(r.source, 'jolpica') as source
+           from results r join races ra on ra.id = r.race_id
+           where ra.season = :s order by ra.round, r.session, r.position_order""",
+        s=season,
+    )
+    refs, teams = driver_refs(engine), team_names(engine)
+    gp = res[res["session"] == "R"]
+    gp_done = set(gp["round"])
+    sprint_done = set(res.loc[res["session"] == "S", "round"])
+    gps_left = int((~cal["round"].isin(gp_done)).sum())
+    sprints_left = int(
+        ((cal["weekend_format"] == "sprint") & ~cal["round"].isin(sprint_done)).sum()
+    )
+    gp_drv, gp_team, sp_drv, sp_team = _max_points(season)
+    left_driver = gps_left * gp_drv + sprints_left * sp_drv
+    left_team = gps_left * gp_team + sprints_left * sp_team
+
+    rounds = sorted(set(res["round"]))
+    names = dict(zip(cal["round"], cal["name"], strict=True))
+    ids = dict(zip(cal["round"], cal["id"], strict=True))
+
+    def table(key: str) -> tuple[pd.DataFrame, dict[str, list[float]]]:
+        if res.empty:
+            return pd.DataFrame(columns=["points", "wins", "podiums", "gap"]), {}
+        per_round = res.pivot_table(index=key, columns="round", values="points", aggfunc="sum")
+        per_round = per_round.reindex(columns=rounds).fillna(0).cumsum(axis=1)
+        df = pd.DataFrame(
+            {
+                "points": res.groupby(key)["points"].sum(),
+                "wins": gp[gp["position"] == 1].groupby(key).size(),
+                "podiums": gp[gp["position"] <= 3].groupby(key).size(),
+            }
+        ).fillna(0)
+        df = _ranked(df, key, gp)
+        df["gap"] = float(df["points"].iloc[0]) - df["points"]
+        progression = {k: [float(v) for v in row] for k, row in per_round.iterrows()}
+        return df, progression
+
+    latest_team = res.groupby("driver_id")["constructor_id"].last()
+    drv, drv_prog = table("driver_id")
+    form = {d: g.tail(5) for d, g in gp.groupby("driver_id")}
+    drivers = [
+        {
+            "position": i + 1,
+            "driver": driver_ref(refs, teams, d, latest_team[d]),
+            "points": float(r["points"]),
+            "wins": int(r["wins"]),
+            "podiums": int(r["podiums"]),
+            "gap": float(r["gap"]),
+            "in_contention": bool(r["gap"] <= left_driver),
+            "form": [
+                {"round": int(f["round"]), "text": str(f["position_text"])}
+                for f in form[d].to_dict("records")
+            ]
+            if d in form
+            else [],
+        }
+        for i, (d, r) in enumerate(drv.iterrows())
+    ]
+
+    team, team_prog = table("constructor_id")
+    lineups: dict[str, list[str]] = {}
+    for d, t in latest_team.items():
+        lineups.setdefault(t, []).append(d)
+    constructors = [
+        {
+            "position": i + 1,
+            "team_id": t,
+            "team_name": teams.get(t, t),
+            "points": float(r["points"]),
+            "wins": int(r["wins"]),
+            "podiums": int(r["podiums"]),
+            "gap": float(r["gap"]),
+            "in_contention": bool(r["gap"] <= left_team),
+            "drivers": [
+                driver_ref(refs, teams, d, t)
+                for d in sorted(lineups.get(t, []), key=lambda d: -drv.loc[d, "points"])
+            ],
+        }
+        for i, (t, r) in enumerate(team.iterrows())
+    ]
+
+    return {
+        "season": season,
+        "rounds_total": len(cal),
+        "rounds_done": len(gp_done),
+        "points_left_driver": left_driver,
+        "points_left_team": left_team,
+        "provisional": bool((res["source"] != "jolpica").any()),
+        "rounds": [{"round": int(r), "race_id": ids[r], "name": names[r]} for r in rounds],
+        "drivers": drivers,
+        "constructors": constructors,
+        "driver_progression": drv_prog,
+        "team_progression": team_prog,
     }

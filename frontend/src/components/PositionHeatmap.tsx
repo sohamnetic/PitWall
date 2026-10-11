@@ -2,7 +2,7 @@ import { useRef, useState } from 'react'
 import type { PredictionRow } from '../api/types'
 import { seqFill } from '../theme'
 import { Segmented, TooltipPanel } from './ui'
-import { pct } from '../format'
+import { chance } from '../format'
 
 const LABEL_MIN = 0.2 // label only the cells that matter; the rest live in tooltip + table
 
@@ -63,7 +63,7 @@ export default function PositionHeatmap({ rows }: { rows: PredictionRow[] }) {
                   <td className="sticky left-0 bg-card px-2 py-1 font-semibold">{r.driver.code}</td>
                   {r.position_probs.map((p, i) => (
                     <td key={i} className="px-1.5 py-1 text-right text-ink">
-                      {p >= 0.005 ? pct(p) : '·'}
+                      {p >= 0.005 ? chance(p) : <span className="text-muted">&lt;1</span>}
                     </td>
                   ))}
                 </tr>
@@ -97,7 +97,7 @@ export default function PositionHeatmap({ rows }: { rows: PredictionRow[] }) {
               <TooltipPanel
                 title={`${hover.row.driver.name} · P${hover.pos}`}
                 rows={[
-                  { label: `chance to finish P${hover.pos}`, value: pct(hover.row.position_probs[hover.pos - 1], 1) },
+                  { label: `chance to finish P${hover.pos}`, value: chance(hover.row.position_probs[hover.pos - 1], 1) },
                   ...(hover.row.actual_position === hover.pos ? [{ label: 'actual finish', value: '✓' }] : []),
                 ]}
               />
@@ -151,6 +151,9 @@ function Legend({ hasActual }: { hasActual: boolean }) {
         <span>100%</span>
         <span className="text-muted">chance of finishing in that position · numbers are %</span>
       </div>
+      <span className="w-full text-muted">
+        Nothing is ruled out: a dark cell means fewer than 1 in 200 simulated races ended that way.
+      </span>
       {hasActual && (
         <div className="flex items-center gap-1.5">
           <span className="inline-block h-3 w-3 rounded-[3px]" style={{ boxShadow: 'inset 0 0 0 2px var(--ink)' }} />

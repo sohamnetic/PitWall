@@ -182,6 +182,9 @@ body {
 .drift-a { animation: drift-a 26s ease-in-out infinite alternate; }
 .drift-b { animation: drift-b 32s ease-in-out infinite alternate; }
 .lap { animation: lap linear infinite; }
+/* Circuit maps on cards: the car only runs while the card is hovered. */
+.lap-hover { opacity: 0; animation-play-state: paused; transition: opacity 0.3s; }
+.group:hover .lap-hover, .group:focus-visible .lap-hover { opacity: 1; animation-play-state: running; }
 .streak { animation: streak 9s cubic-bezier(0.3, 0, 0.6, 1) infinite; }
 .beam { animation: sway 14s ease-in-out infinite alternate; }
 

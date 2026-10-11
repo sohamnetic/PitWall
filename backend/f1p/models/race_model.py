@@ -12,7 +12,7 @@ import pandas as pd
 from f1p import __version__, config
 from f1p.features.build import feature_columns
 from f1p.models.base import RacePrediction
-from f1p.models.calibrate import fit_temperature
+from f1p.models.calibrate import fit_incidents, fit_temperature
 from f1p.models.dnf import DnfModel
 from f1p.models.ranker import PaceRanker
 from f1p.models.simulate import simulate
@@ -27,6 +27,7 @@ class RaceModel:
         name: str | None = None,
         n_sims: int = 10_000,
         temperature_top_k: int | None = 3,
+        incidents: bool = True,
         **ranker_params,
     ):
         self.stage = stage
@@ -36,6 +37,9 @@ class RaceModel:
         self.ranker_params = ranker_params
         self.features = feature_columns(stage)
         self.temperature = 1.0
+        self.fit_incidents = incidents
+        self.incident_rate = 0.0  # chance of a bad day that doesn't end the race
+        self.incident_drop = 0.0  # mean pace lost on one (in simulation key units)
 
     def fit(self, train: pd.DataFrame) -> RaceModel:
         races = train.drop_duplicates("race_id").sort_values("race_idx")["race_idx"]
@@ -47,6 +51,8 @@ class RaceModel:
             ranker = PaceRanker(self.features, **self.ranker_params).fit(early)
             pairs = _calibration_pairs(ranker, calib)
             self.temperature = fit_temperature(pairs, self.temperature_top_k)
+            if self.fit_incidents:
+                self.incident_rate, self.incident_drop = fit_incidents(pairs, self.temperature)
         # 2. Final models on everything.
         self.ranker = PaceRanker(self.features, **self.ranker_params).fit(train)
         self.dnf = DnfModel(self.stage).fit(train)
@@ -58,6 +64,8 @@ class RaceModel:
             "trained_through": trained_through,
             "trained_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "temperature": self.temperature,
+            "incident_rate": self.incident_rate,
+            "incident_drop": self.incident_drop,
             "version": __version__,
         }
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -70,7 +78,11 @@ class RaceModel:
     def predict_race(self, race: pd.DataFrame) -> RacePrediction:
         scores = self.ranker.score(race)
         p_dnf = self.dnf.predict(race)
-        probs = simulate(scores, p_dnf, self.temperature, n_sims=self.n_sims)
+        rate, drop = self.incidents
+        probs = simulate(
+            scores, p_dnf, self.temperature, n_sims=self.n_sims, incident_rate=rate,
+            incident_drop=drop,
+        )  # fmt: skip
         return RacePrediction(
             race["race_id"].iloc[0],
             race["driver_id"].tolist(),
@@ -79,6 +91,11 @@ class RaceModel:
             p_dnf=p_dnf,
             temperature=self.temperature,
         )
+
+    @property
+    def incidents(self) -> tuple[float, float]:
+        """(rate, mean drop); models pickled before incidents existed have none."""
+        return getattr(self, "incident_rate", 0.0), getattr(self, "incident_drop", 0.0)
 
 
 def _calibration_pairs(ranker: PaceRanker, calib: pd.DataFrame):

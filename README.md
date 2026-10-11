@@ -25,8 +25,14 @@ simple rules of thumb. It beats them.
   hypothetical grid doubles as a qualifying result ("what if Leclerc takes pole?").
 - **Beat the model**: pick the podium before each race and climb the season leaderboard
   against other players and the model itself. No account needed; picks lock at lights out.
-- **Track record**: the walk-forward backtest against every baseline, a calibration chart
-  ("does 30% happen 30% of the time?"), and every live forecast scored.
+- **Standings**: the drivers' and constructors' championships with countback tie-breaks,
+  each driver's last five results, who can still mathematically win the title, and a chart of
+  how the points race unfolded.
+- **Races**: every round with its circuit map, the winner, the model's favourite and whether
+  it called it.
+- **Track record**: in plain English first (*was the model closer than "everyone finishes where
+  they start"? in how many races? does 30% happen 30% of the time?*), with the full
+  walk-forward backtest, calibration chart and every scored forecast one click away.
 - **Install it**: it's a PWA. Add it to your home screen, and it still shows the last data you
   saw when offline.
 
@@ -46,19 +52,21 @@ finishing order; log-loss and Brier score judge the probabilities (lower is bett
 
 | | Spearman | Winner right | Top-3 overlap | Win log-loss | Podium Brier | Points Brier |
 |---|---|---|---|---|---|---|
-| **Model** | **0.674** | **60%** | **67%** | **1.15** | **0.069** | **0.149** |
+| **Model** | **0.674** | **61%** | **67%** | **1.17** | **0.069** | **0.149** |
 | Grid order | 0.631 | 57% | 67% | 1.46 | 0.070 | 0.165 |
 
 **Before qualifying**
 
 | | Spearman | Winner right | Top-3 overlap | Win log-loss | Podium Brier | Points Brier |
 |---|---|---|---|---|---|---|
-| **Model** | **0.616** | 45% | 55% | **1.55** | **0.084** | **0.167** |
+| **Model** | **0.616** | 45% | 54% | **1.56** | **0.084** | **0.168** |
 | Championship order | 0.593 | **47%** | **57%** | 1.72 | 0.086 | 0.176 |
 | Fastest in practice | 0.596 | 44% | 52% | 1.78 | 0.091 | 0.173 |
 | Uniform (knows nothing) | ≈0 | – | 7% | 3.00 | 0.127 | 0.250 |
 
-The probabilities are calibrated: drivers given ~27% to win won 27% of the time; ~49% → 54%.
+In plain terms: after qualifying, the model's order is closer to the result than "everyone
+finishes where they start" in 67 of 108 races (39 the other way, 2 ties), and in every one of the
+five seasons. The probabilities are calibrated: things it gives ~29% happen 29% of the time.
 Honest caveats: before qualifying, plain championship order still picks the winner a little
 more often, and in 2026 alone "fastest in practice" orders the field slightly better.
 
@@ -97,6 +105,12 @@ flowchart LR
 5. **Simulation**: each race is simulated 10,000 times. Retirements are drawn first, then the
    finishers' order via Plackett–Luce (Gumbel-max trick). The randomness ("temperature") is
    fitted on held-out races' top three. Fitting the whole order made win odds too flat.
+   Gumbel noise alone has a thin lower tail, so a front-runner who didn't retire almost never
+   finished, say, ninth, and the heatmap showed hard 0%s. Each driver therefore also has a
+   chance of a **bad day** (first-lap damage, a penalty, a slow stop) that costs an
+   exponentially distributed amount of pace; its rate and size are fitted on held-out races by
+   the likelihood of every driver's actual finishing place (currently about 14–20% per driver
+   per race). That improved the backtest's log-loss on exact finishing places from 2.57 to 2.52.
 6. **Live operation**: forecasts are immutable snapshots, flagged `live` (made before qualifying
    / the race) or `backfill`. Jolpica can lag a day, so qualifying and sprint classifications are
    rebuilt provisionally from lap timing and replaced by the official results when published.
@@ -181,11 +195,12 @@ Interactive docs at `/docs` (dev) or `/api/docs` (production).
 | Endpoint | Returns |
 |---|---|
 | `GET /seasons`, `/seasons/{year}/races` | Calendar: status, winner, the model's favourite, latest snapshot ids |
+| `GET /seasons/{year}/standings` | Drivers' and constructors' championships, title contention, points after every round |
 | `GET /races/next`, `/races/{id}` | A race with results, sprint, qualifying and its snapshots |
 | `GET /races/{id}/predictions?stage=` | Latest snapshot: per-driver probabilities, full position distribution, actual finish and score |
 | `GET /races/{id}/field` | Drivers in starting (or predicted) order: the what-if editor's start |
 | `POST /races/{id}/simulate` | Answers custom questions, optionally under a what-if scenario |
-| `GET /performance` | Backtest summary, per-season results, calibration, live track record |
+| `GET /performance` | Backtest summary, per-season results, calibration, a plain-English head-to-head vs the obvious guess, and every forecast's pick, winner and score |
 | `GET /drivers`, `/drivers/{id}` | Line-up; a driver's form and prediction history |
 | `POST /players`, `GET /players/me`, `GET /players/me/picks` | Join the game (returns a private player key); your picks |
 | `GET/PUT /races/{id}/picks/me` | Your podium pick (editable until lights out) |
@@ -205,10 +220,10 @@ backend/f1p/
   pipeline/    CLI (f1p) and live predict / score
   api/         FastAPI app, queries, simulation service, production server
   game.py      'Beat the model' scoring
-backend/tests/ 92 tests incl. leakage, API, game and server tests
+backend/tests/ 96 tests incl. leakage, API, game and server tests
 frontend/src/  React + TypeScript (Vite, TanStack Query, Recharts, Tailwind), PWA
 notebooks/     exploratory analysis
-scripts/       icon generator
+scripts/       icon generator, circuit-map builder
 ```
 
 ## Status
@@ -229,4 +244,6 @@ when a forecast changes, a hosted deployment with the autopilot running every we
 ---
 
 PitWall is an independent fan project, not affiliated with Formula 1, the FIA or any team.
-Data © their providers (Jolpica, FastF1 / F1 live timing).
+Data © their providers (Jolpica, FastF1 / F1 live timing). Circuit outlines from
+[bacinger/f1-circuits](https://github.com/bacinger/f1-circuits) (MIT), converted by
+`scripts/make_circuits.py`.

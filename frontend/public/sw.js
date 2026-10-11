@@ -6,7 +6,7 @@
 // - Page navigations: network-first, falling back to the cached app shell.
 // POST/PUT (simulations, picks) are never cached.
 
-const VERSION = 'v2' // bump to drop old caches (v2: PitWall rebrand)
+const VERSION = 'v3' // bump to drop old caches (v3: standings, circuit maps)
 const SHELL = `shell-${VERSION}`
 const ASSETS = `assets-${VERSION}`
 const API = `api-${VERSION}`

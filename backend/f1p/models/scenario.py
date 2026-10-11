@@ -95,8 +95,10 @@ def apply(rows: pd.DataFrame, s: Scenario, quali_gaps: pd.Series) -> pd.DataFram
 
 
 def simulation_inputs(model, rows: pd.DataFrame, s: Scenario):
-    """Scores, retirement chances and temperature for the scenario's simulated races."""
+    """Scores, retirement chances, temperature and bad-day settings for the scenario's races.
+    More chaos means more randomness in the order and more bad days."""
     scores = model.ranker.score(rows)
     p_dnf = model.dnf.predict(rows)
     p_dnf = np.where(rows["driver_id"].isin(s.retire), 1.0, p_dnf)
-    return scores, p_dnf, model.temperature * s.chaos
+    rate, drop = model.incidents
+    return scores, p_dnf, model.temperature * s.chaos, min(rate * s.chaos, 0.5), drop

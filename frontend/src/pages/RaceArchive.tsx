@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { useSeasonRaces, useSeasons } from '../api/hooks'
 import type { DriverRef, RaceSummary } from '../api/types'
+import CircuitMap from '../components/CircuitMap'
 import { Badge, ErrorState, Loading, PageHeader, StatTile, TeamStripe } from '../components/ui'
-import { pct, shortDate } from '../format'
+import { chance, pct, shortDate } from '../format'
+import { teamColor } from '../teams'
 import { usePageTitle } from '../usePageTitle'
 
 export default function RaceArchive() {
@@ -87,24 +89,36 @@ function RaceCard({ race: r, next, delay }: { race: RaceSummary; next: boolean; 
       }`}
       style={{ animationDelay: `${Math.min(delay, 400)}ms` }}
     >
-      <span className="display pointer-events-none absolute -right-2 -top-4 text-8xl text-white/[0.04]" aria-hidden>
+      <span className="display pointer-events-none absolute -bottom-6 -right-2 text-8xl text-white/[0.04]" aria-hidden>
         {String(r.round).padStart(2, '0')}
       </span>
-      <div className="eyebrow flex items-center gap-2">
-        Round {r.round} · {shortDate(r.race_date)}
-        {r.weekend_format === 'sprint' && <span className="text-brand-hot">Sprint</span>}
+      <div className="relative flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="eyebrow flex flex-wrap items-center gap-x-2">
+            <span className="whitespace-nowrap">Round {r.round} · {shortDate(r.race_date)}</span>
+            {r.weekend_format === 'sprint' && <span className="text-brand-hot">Sprint</span>}
+          </div>
+          <h2 className="display mt-1 text-2xl uppercase leading-tight group-hover:text-white">
+            {r.name.replace(' Grand Prix', '')}
+          </h2>
+          <div className="mt-1 text-sm text-ink-2">{r.locality ?? r.circuit_name}{r.country ? `, ${r.country}` : ''}</div>
+        </div>
+        {/* The winner's team colour once the race is run. */}
+        <CircuitMap
+          circuitId={r.circuit_id}
+          label={r.circuit_name}
+          color={r.winner ? teamColor(r.winner.team_id) : 'var(--brand-hot)'}
+          lap={next ? 'always' : 'hover'}
+          className="h-20 w-24 shrink-0 text-ink-2 transition-colors group-hover:text-ink"
+        />
       </div>
-      <h2 className="display mt-1 text-2xl uppercase leading-tight group-hover:text-white">
-        {r.name.replace(' Grand Prix', '')}
-      </h2>
-      <div className="mt-1 text-sm text-ink-2">{r.locality ?? r.circuit_name}{r.country ? `, ${r.country}` : ''}</div>
 
       <div className="mt-4 space-y-2 text-sm">
         <Row label="Winner" driver={r.winner} empty={next ? 'Next race' : r.status === 'upcoming' ? 'Upcoming' : '–'} />
         <Row
           label="Model"
           driver={r.favourite?.driver ?? null}
-          extra={r.favourite ? pct(r.favourite.p_win) : undefined}
+          extra={r.favourite ? chance(r.favourite.p_win) : undefined}
           empty="No forecast"
         />
       </div>

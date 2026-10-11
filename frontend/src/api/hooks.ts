@@ -17,6 +17,7 @@ import type {
   SimulateResponse,
   Snapshot,
   Stage,
+  Standings,
 } from './types'
 
 export { ApiError }
@@ -40,6 +41,14 @@ export const useSeasonRaces = (season: number | undefined) =>
   useQuery({
     queryKey: ['seasons', season, 'races'],
     queryFn: () => apiGet<RaceSummary[]>(`/seasons/${season}/races`),
+    enabled: season !== undefined,
+    placeholderData: keepPreviousData,
+  })
+
+export const useStandings = (season: number | undefined) =>
+  useQuery({
+    queryKey: ['seasons', season, 'standings'],
+    queryFn: () => apiGet<Standings>(`/seasons/${season}/standings`),
     enabled: season !== undefined,
     placeholderData: keepPreviousData,
   })

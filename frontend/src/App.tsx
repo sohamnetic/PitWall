@@ -2,7 +2,7 @@ import { Suspense, lazy, type ReactNode } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router'
 import Backdrop from './components/Backdrop'
 import ErrorBoundary from './components/ErrorBoundary'
-import { AskIcon, ChartIcon, FlagIcon, ListIcon, PeopleIcon, TrophyIcon } from './components/icons'
+import { AskIcon, ChartIcon, FlagIcon, ListIcon, PeopleIcon, PodiumIcon, TrophyIcon } from './components/icons'
 import { Loading } from './components/ui'
 import Drivers from './pages/Drivers'
 import NextRace from './pages/NextRace'
@@ -14,6 +14,7 @@ const ModelPerformance = lazy(() => import('./pages/ModelPerformance'))
 const Driver = lazy(() => import('./pages/Driver'))
 const Ask = lazy(() => import('./pages/Ask'))
 const Play = lazy(() => import('./pages/Play'))
+const Standings = lazy(() => import('./pages/Standings'))
 
 interface NavItem {
   to: string
@@ -29,6 +30,7 @@ const NAV: NavItem[] = [
   { to: '/ask', label: 'Ask the model', short: 'Ask', icon: <AskIcon />, end: false, mobile: true },
   { to: '/play', label: 'Beat the model', short: 'Play', icon: <TrophyIcon />, end: false, mobile: true },
   { to: '/archive', label: 'Races', short: 'Races', icon: <ListIcon />, end: false, mobile: true },
+  { to: '/standings', label: 'Standings', short: 'Standings', icon: <PodiumIcon />, end: false, mobile: true },
   { to: '/performance', label: 'Track record', short: 'Record', icon: <ChartIcon />, end: true, mobile: true },
   { to: '/drivers', label: 'Drivers', short: 'Drivers', icon: <PeopleIcon />, end: false, mobile: false },
 ]
@@ -82,6 +84,7 @@ export default function App() {
               <Route path="/ask" element={<Ask />} />
               <Route path="/play" element={<Play />} />
               <Route path="/archive" element={<RaceArchive />} />
+              <Route path="/standings" element={<Standings />} />
               <Route path="/races/:raceId" element={<RacePage />} />
               <Route path="/performance" element={<ModelPerformance />} />
               <Route path="/drivers" element={<Drivers />} />
@@ -105,7 +108,7 @@ export default function App() {
         className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-page/90 backdrop-blur-xl lg:hidden"
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-6">
           {NAV.filter((i) => i.mobile).map((item) => (
             <li key={item.to}>
               <NavLink

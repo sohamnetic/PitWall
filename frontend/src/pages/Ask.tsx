@@ -4,7 +4,7 @@ import { useRaceField, useSeasonRaces, useSimulation } from '../api/hooks'
 import type { Answer, Question, QuestionKind, RaceField, RaceSummary, Scenario, SimulateResponse } from '../api/types'
 import { ArrowDown, ArrowUp } from '../components/icons'
 import { Badge, Card, ErrorState, Loading, Segmented, PageHeader } from '../components/ui'
-import { num, pct } from '../format'
+import { chance, num } from '../format'
 import { KIND_LABEL, describe, namesFor, questionKey, suggestions, verbal, type Names } from '../questions'
 import { buttonClass } from '../styles'
 import { usePageTitle } from '../usePageTitle'
@@ -330,7 +330,7 @@ function AnswerCard({ text, answer, base, onRemove }: { text: string; answer?: A
       ) : (
         <>
           <div className="flex items-baseline gap-2">
-            <span className="display text-4xl">{pct(p)}</span>
+            <span className="display text-4xl">{chance(p)}</span>
             <span className="text-sm text-ink-2">{verbal(p)}</span>
             {delta != null && Math.abs(delta) >= 0.005 && <Delta value={delta} />}
           </div>
@@ -533,10 +533,10 @@ function WhatIf({
                       <td className="tabular py-1.5 pl-4 text-ink-2 sm:pl-0">{r.pred_rank}</td>
                       <td className="px-2 font-semibold">{r.driver.code}</td>
                       <td className="tabular px-2 text-right">
-                        {pct(r.p_win)} {b && Math.abs(r.p_win - b.p_win) >= 0.005 && <Delta value={r.p_win - b.p_win} />}
+                        {chance(r.p_win)} {b && Math.abs(r.p_win - b.p_win) >= 0.005 && <Delta value={r.p_win - b.p_win} />}
                       </td>
                       <td className="tabular px-2 pr-4 text-right sm:pr-0">
-                        {pct(r.p_podium)} {b && Math.abs(r.p_podium - b.p_podium) >= 0.005 && <Delta value={r.p_podium - b.p_podium} />}
+                        {chance(r.p_podium)} {b && Math.abs(r.p_podium - b.p_podium) >= 0.005 && <Delta value={r.p_podium - b.p_podium} />}
                       </td>
                     </tr>
                   )

@@ -19,6 +19,7 @@ import {
 } from 'recharts'
 import { usePerformance } from '../api/hooks'
 import type { CalibrationBin, StageBacktest, Stage, TrackRecordEntry } from '../api/types'
+import { HonestOdds, PlainCards, RecentForecasts, SeasonStrip, Verdict } from '../components/PlainRecord'
 import { Badge, Card, ErrorState, Loading, Segmented, StatTile, TooltipPanel, PageHeader } from '../components/ui'
 import { BASELINE_LABEL, STAGE_LABEL, num, pct } from '../format'
 import { useThemeColors, type ThemeColors } from '../theme'
@@ -45,13 +46,13 @@ export default function ModelPerformance() {
       <PageHeader
         eyebrow="Is the model any good?"
         title="Track record"
-        subtitle="Every race since 2022 predicted by a model retrained only on the races before it, then compared with simple rules of thumb."
+        subtitle="We replayed every race since 2022. Each time the model only knew what was known before that race, just like a real forecast. Here's how it did against the obvious guess."
         actions={
           <Segmented
             label="Prediction stage"
             value={stage}
             onChange={setStage}
-            options={(['pre', 'post'] as const).map((s) => ({ value: s, label: STAGE_LABEL[s] }))}
+            options={(['post', 'pre'] as const).map((s) => ({ value: s, label: STAGE_LABEL[s] }))}
           />
         }
       />
@@ -61,17 +62,46 @@ export default function ModelPerformance() {
           <p className="text-ink-2">No backtest results yet. Run <code>f1p backtest</code>.</p>
         </Card>
       ) : (
-        <>
-          <Headline bt={bt} />
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AccuracyBars bt={bt} c={c} />
-            <SeasonLines bt={bt} c={c} stage={stage} />
-          </div>
-          <Calibration calibration={bt.calibration} c={c} />
-          <SummaryTable bt={bt} />
-        </>
+        bt.plain && (
+          <>
+            <Verdict p={bt.plain} />
+            <PlainCards p={bt.plain} />
+            <SeasonStrip p={bt.plain} />
+            <HonestOdds bands={bt.plain.honesty} />
+          </>
+        )
       )}
-      <TrackRecord entries={perf.data.track_record} />
+      <RecentForecasts entries={perf.data.track_record} stage={stage} />
+
+      {/* The technical view, folded away: every method, every measure. */}
+      <details className="panel group/nerd p-4 sm:p-6">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+          <span>
+            <span className="eyebrow block">For the curious</span>
+            <span className="display block text-xl sm:text-2xl">The full numbers</span>
+            <span className="mt-1 block text-sm text-ink-2">
+              Every method and measure, the calibration chart and each saved forecast's score.
+            </span>
+          </span>
+          <span className="display text-3xl text-ink-2 transition-transform group-open/nerd:rotate-45" aria-hidden>
+            +
+          </span>
+        </summary>
+        <div className="mt-6 space-y-8">
+          {bt && (
+            <>
+              <Headline bt={bt} />
+              <div className="grid gap-6 lg:grid-cols-2">
+                <AccuracyBars bt={bt} c={c} />
+                <SeasonLines bt={bt} c={c} stage={stage} />
+              </div>
+              <Calibration calibration={bt.calibration} c={c} />
+              <SummaryTable bt={bt} />
+            </>
+          )}
+          <TrackRecord entries={perf.data.track_record} />
+        </div>
+      </details>
     </div>
   )
 }
@@ -342,7 +372,7 @@ function TrackRecord({ entries }: { entries: TrackRecordEntry[] }) {
   const live = scored.filter((e) => e.live)
   return (
     <Card
-      title="Track record"
+      title="Every saved forecast, scored"
       subtitle={
         live.length
           ? `${live.length} live forecast${live.length === 1 ? '' : 's'} scored so far.`

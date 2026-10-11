@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { DriverRef } from '../api/types'
-import { pct } from '../format'
+import { chance } from '../format'
 import { teamColor } from '../teams'
 
 // ---------------------------------------------------------------- layout
@@ -206,7 +206,7 @@ export function ErrorState({ error }: { error: unknown }) {
 export function ProbBar({ p, label, width = 'w-20' }: { p: number; label: string; width?: string }) {
   return (
     <div className="flex items-center justify-end gap-2.5" title={label}>
-      <span className="tabular w-10 text-right font-medium text-ink">{pct(p)}</span>
+      <span className="tabular w-10 text-right font-medium text-ink">{chance(p)}</span>
       <span className={`hidden h-1.5 ${width} overflow-hidden rounded-full bg-white/[0.06] sm:block`} aria-hidden>
         <span className="fill block h-1.5 rounded-full bg-s1" style={{ width: `${Math.max(p * 100, 0)}%` }} />
       </span>

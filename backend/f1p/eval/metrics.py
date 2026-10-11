@@ -44,6 +44,10 @@ def race_metrics(pred: RacePrediction, actual: np.ndarray) -> dict[str, float]:
         "podium_brier": float(((pred.p_podium - podium) ** 2).mean()),
         "points_logloss": _binary_logloss(pred.p_points, points),
         "points_brier": float(((pred.p_points - points) ** 2).mean()),
+        # Probability given to each driver's exact finishing place: punishes "impossible" 0%s.
+        "pos_logloss": float(
+            -np.log(np.maximum(pred.probs[np.arange(len(actual)), actual - 1], EPS)).mean()
+        ),
     }
 
 

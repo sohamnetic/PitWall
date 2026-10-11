@@ -126,3 +126,21 @@ def test_openapi_docs(client):
         "/drivers/{driver_id}",
     ):
         assert p in paths
+
+
+def test_standings(client):
+    s = client.get("/seasons/2026/standings").json()
+    assert s["rounds_done"] == s["rounds_total"] == 4
+    assert s["points_left_driver"] == 0  # season over: only the leader can still be champion
+    drivers, teams = s["drivers"], s["constructors"]
+    assert [d["position"] for d in drivers] == list(range(1, len(drivers) + 1))
+    points = [d["points"] for d in drivers]
+    assert points == sorted(points, reverse=True) and drivers[0]["gap"] == 0
+    assert [d["in_contention"] for d in drivers] == [p == points[0] for p in points]
+    assert sum(t["points"] for t in teams) == sum(points)
+    assert {t["team_id"] for t in teams} == {"red", "blue"}
+    for d in drivers:  # the progression ends at the current total
+        assert s["driver_progression"][d["driver"]["id"]][-1] == d["points"]
+        assert 0 < len(d["form"]) <= 5
+    assert len(s["rounds"]) == len(s["driver_progression"][drivers[0]["driver"]["id"]])
+    assert client.get("/seasons/1999/standings").status_code == 404
