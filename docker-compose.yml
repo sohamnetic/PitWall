@@ -1,0 +1,25 @@
+# docker compose up -d   ->  app on http://localhost:8000
+#
+# First run: load data and train inside the container (takes a while; see README):
+#   docker compose run --rm app f1p ingest --seasons 2014-2026 --no-laps
+#   docker compose run --rm app f1p ingest --seasons 2025-2026 --no-results
+#   docker compose run --rm app f1p train
+services:
+  app:
+    build: .
+    image: pitwall
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    restart: unless-stopped
+
+  # Race-weekend autopilot: refresh data, forecast after practice / qualifying, score results.
+  autopilot:
+    image: pitwall
+    depends_on:
+      - app
+    volumes:
+      - ./data:/data
+    command: ["sh", "-c", "while true; do f1p auto || true; sleep 3600; done"]
+    restart: unless-stopped

@@ -1,0 +1,150 @@
+@import "@fontsource-variable/inter";
+@import "@fontsource/titillium-web/400.css";
+@import "@fontsource/titillium-web/600.css";
+@import "@fontsource/titillium-web/700.css";
+@import "@fontsource/titillium-web/900.css";
+@import "tailwindcss";
+
+/* "Race control": a dark, broadcast-style theme. UI and charts are written against these
+   roles, never raw hex. Chart series (s1-s3) are the validated colour-blind-safe palette,
+   checked against the panel colour; brand red is for identity and calls to action only,
+   never for data. */
+:root {
+  color-scheme: dark;
+  --page: #08080b;
+  --card: #14141b;
+  --card-2: #1c1c25;
+  --ink: #f5f5f7;
+  --ink-2: #b9b9c6;
+  --muted: #8b8b98;
+  --grid: #262630;
+  --axis: #3a3a46;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --hover: rgba(255, 255, 255, 0.05);
+  --s1: #3987e5;
+  --s2: #d95926;
+  --s3: #199e70;
+  --neutral-mark: #4a4a55;
+  --good: #22c55e;
+  --critical: #f87171;
+  --brand: #e10600;
+  --brand-hot: #ff2a1f;
+}
+
+@theme inline {
+  --color-page: var(--page);
+  --color-card: var(--card);
+  --color-card-2: var(--card-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-muted: var(--muted);
+  --color-grid: var(--grid);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-hover: var(--hover);
+  --color-s1: var(--s1);
+  --color-s2: var(--s2);
+  --color-s3: var(--s3);
+  --color-good: var(--good);
+  --color-critical: var(--critical);
+  --color-brand: var(--brand);
+  --color-brand-hot: var(--brand-hot);
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Titillium Web", "Inter Variable", system-ui, sans-serif;
+}
+
+html {
+  background: var(--page);
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* A faint red glow from the top and a carbon-fibre weave. */
+  background:
+    radial-gradient(1200px 500px at 20% -10%, rgba(225, 6, 0, 0.16), transparent 60%),
+    radial-gradient(900px 400px at 100% 0%, rgba(57, 135, 229, 0.08), transparent 60%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 6px),
+    var(--page);
+  background-attachment: fixed;
+  min-height: 100vh;
+}
+
+::selection {
+  background: rgba(225, 6, 0, 0.45);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brand-hot);
+  outline-offset: 2px;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Display type: condensed, bold, a little tracking. Race names, positions, big numbers. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* Small uppercase eyebrow labels, like broadcast graphics. */
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+/* Panels: raised surface, hairline border, a faint top highlight. */
+.panel {
+  background: linear-gradient(180deg, var(--card-2), var(--card) 120px);
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 30px -15px rgba(0, 0, 0, 0.6);
+}
+
+/* Slanted speed stripes behind hero content. */
+.speed-stripes {
+  background:
+    linear-gradient(105deg, transparent 0 62%, rgba(225, 6, 0, 0.9) 62% 63.2%, transparent 63.2% 65%,
+      rgba(225, 6, 0, 0.55) 65% 65.8%, transparent 65.8% 67.5%, rgba(225, 6, 0, 0.3) 67.5% 68%,
+      transparent 68%);
+}
+
+/* Motion: things arrive, bars fill. Off for people who prefer reduced motion. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.rise {
+  animation: rise 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.fill {
+  transform-origin: left;
+  animation: fill 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.live-dot {
+  animation: pulse-dot 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise, .fill, .live-dot {
+    animation: none;
+  }
+}
