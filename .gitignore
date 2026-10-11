@@ -8,7 +8,7 @@ __pycache__/
 .ipynb_checkpoints/
 
 # Data (re-creatable via `f1p ingest`)
-data/
+/data/
 
 # Node
 node_modules/
