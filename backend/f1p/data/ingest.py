@@ -56,8 +56,10 @@ def ingest_results(seasons: list[int]) -> None:
 
         drivers, constructors = {}, {}
         for race in results + sprints + qualifying:
-            for row in race.get("Results", []) + race.get("SprintResults", []) + race.get(
-                "QualifyingResults", []
+            for row in (
+                race.get("Results", [])
+                + race.get("SprintResults", [])
+                + race.get("QualifyingResults", [])
             ):
                 drivers[row["Driver"]["driverId"]] = jp.parse_driver(row["Driver"])
                 cons = row["Constructor"]
@@ -92,7 +94,11 @@ def ingest_results(seasons: list[int]) -> None:
             db.commit()
         log.info(
             "%s: %d races scheduled, %d with results, %d result rows, %d quali rows",
-            season, len(schedule), len(results), len(result_rows), len(quali_rows),
+            season,
+            len(schedule),
+            len(results),
+            len(result_rows),
+            len(quali_rows),
         )
 
 

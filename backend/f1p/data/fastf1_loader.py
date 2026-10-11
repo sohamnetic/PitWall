@@ -148,7 +148,9 @@ def load_session(s: ScheduledSession) -> tuple[pd.DataFrame, dict]:
     results = session.results
     if results is not None and "DriverId" in results:
         driver_ids = {
-            a: d for a, d in zip(results["Abbreviation"], results["DriverId"]) if a and d
+            a: d
+            for a, d in zip(results["Abbreviation"], results["DriverId"], strict=True)
+            if a and d
         }
     try:
         weather = session.weather_data
