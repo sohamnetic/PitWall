@@ -54,21 +54,19 @@
   --font-display: "Titillium Web", "Inter Variable", system-ui, sans-serif;
 }
 
+/* Night sky: deep navy at the top fading to black. It sits on the root element so the
+   fixed <Backdrop /> (negative z-index) paints above it but below all content. */
 html {
-  background: var(--page);
+  background: linear-gradient(180deg, #0b0e1c 0%, #08080d 45%, #050507 100%) fixed;
+  background-color: var(--page);
 }
 
 body {
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
-  /* A faint red glow from the top and a carbon-fibre weave. */
-  background:
-    radial-gradient(1200px 500px at 20% -10%, rgba(225, 6, 0, 0.16), transparent 60%),
-    radial-gradient(900px 400px at 100% 0%, rgba(57, 135, 229, 0.08), transparent 60%),
-    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0 2px, transparent 2px 6px),
-    var(--page);
-  background-attachment: fixed;
+  /* Transparent: the floodlights, circuit and grain live in <Backdrop />. */
+  background: transparent;
   min-height: 100vh;
 }
 
@@ -102,14 +100,30 @@ body {
   color: var(--muted);
 }
 
-/* Panels: raised surface, hairline border, a faint top highlight. */
+/* Panels: smoked glass over the floodlit backdrop. Dark enough (~85% opaque) that text
+   contrast is unchanged; the glow just tints the edges. */
 .panel {
-  background: linear-gradient(180deg, var(--card-2), var(--card) 120px);
+  background: linear-gradient(180deg, rgba(30, 30, 40, 0.82), rgba(18, 18, 25, 0.86) 140px);
   border: 1px solid var(--line);
   border-radius: 1rem;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 10px 30px -15px rgba(0, 0, 0, 0.6);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 20px 40px -20px rgba(0, 0, 0, 0.8);
+  /* No backdrop-filter: the backdrop animates, and re-blurring it under every panel each
+     frame is expensive on phones. At ~85% opacity the panels read the same without it. */
+}
+
+/* Red-and-white kerb stripes, as on the edge of a corner. */
+.kerb {
+  height: 5px;
+  background: repeating-linear-gradient(-45deg, var(--brand) 0 10px, #f2f2f2 10px 20px);
+}
+
+/* A chequered flag that fades out from one corner. */
+.chequer {
+  background: conic-gradient(rgba(255, 255, 255, 0.9) 25%, transparent 0 50%, rgba(255, 255, 255, 0.9) 0 75%, transparent 0) 0 0 / 22px 22px;
+  -webkit-mask-image: radial-gradient(circle at 100% 0%, black, transparent 70%);
+  mask-image: radial-gradient(circle at 100% 0%, black, transparent 70%);
 }
 
 /* Slanted speed stripes behind hero content. */
@@ -143,8 +157,37 @@ body {
 .live-dot {
   animation: pulse-dot 1.6s ease-in-out infinite;
 }
+/* Backdrop motion: floodlights drift, cars lap the circuit, light streaks pass. */
+@keyframes drift-a {
+  from { transform: translate3d(-6%, -4%, 0) scale(1); }
+  to { transform: translate3d(8%, 6%, 0) scale(1.15); }
+}
+@keyframes drift-b {
+  from { transform: translate3d(5%, 3%, 0) scale(1.1); }
+  to { transform: translate3d(-7%, -5%, 0) scale(0.95); }
+}
+@keyframes lap {
+  from { stroke-dashoffset: 1000; }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes sway {
+  from { transform: rotate(-3deg); }
+  to { transform: rotate(4deg); }
+}
+@keyframes streak {
+  0% { transform: translateX(-40vw) rotate(-18deg); opacity: 0; }
+  10% { opacity: 1; }
+  40%, 100% { transform: translateX(140vw) rotate(-18deg); opacity: 0; }
+}
+.drift-a { animation: drift-a 26s ease-in-out infinite alternate; }
+.drift-b { animation: drift-b 32s ease-in-out infinite alternate; }
+.lap { animation: lap linear infinite; }
+.streak { animation: streak 9s cubic-bezier(0.3, 0, 0.6, 1) infinite; }
+.beam { animation: sway 14s ease-in-out infinite alternate; }
+
 @media (prefers-reduced-motion: reduce) {
-  .rise, .fill, .live-dot {
+  .rise, .fill, .live-dot, .drift-a, .drift-b, .lap, .streak, .beam {
     animation: none;
   }
+  .streak { display: none; }
 }

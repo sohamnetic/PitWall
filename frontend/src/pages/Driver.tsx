@@ -5,6 +5,7 @@ import { isNotFound, useDriver } from '../api/hooks'
 import type { DriverResult } from '../api/types'
 import { Card, ErrorState, Loading, StatTile, TooltipPanel } from '../components/ui'
 import { STAGE_LABEL, num, pct } from '../format'
+import { useAccent } from '../accent'
 import { teamColor, teamName } from '../teams'
 import { useThemeColors } from '../theme'
 
@@ -13,6 +14,7 @@ export default function Driver() {
   const q = useDriver(driverId)
   const c = useThemeColors()
   usePageTitle(q.data?.driver.name)
+  useAccent(q.data ? teamColor(q.data.driver.team_id) : null)
 
   if (q.isPending) return <Loading what="driver" />
   if (isNotFound(q.error)) return <p className="text-ink-2">No driver with id {driverId}.</p>

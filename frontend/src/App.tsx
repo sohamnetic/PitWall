@@ -1,5 +1,6 @@
 import { Suspense, lazy, type ReactNode } from 'react'
 import { NavLink, Route, Routes, useLocation } from 'react-router'
+import Backdrop from './components/Backdrop'
 import ErrorBoundary from './components/ErrorBoundary'
 import { AskIcon, ChartIcon, FlagIcon, ListIcon, PeopleIcon, TrophyIcon } from './components/icons'
 import { Loading } from './components/ui'
@@ -35,7 +36,8 @@ const NAV: NavItem[] = [
 export default function App() {
   const location = useLocation()
   return (
-    <div className="min-h-screen pb-20 lg:pb-0">
+    <div className="relative min-h-screen pb-20 lg:pb-0">
+      <Backdrop />
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:rounded focus:bg-card focus:px-3 focus:py-2">
         Skip to content
       </a>
@@ -90,7 +92,8 @@ export default function App() {
         </ErrorBoundary>
       </main>
 
-      <footer className="mx-auto max-w-6xl border-t border-line px-4 py-6 text-xs text-muted">
+      <div className="kerb mx-auto max-w-6xl opacity-60" aria-hidden />
+      <footer className="mx-auto max-w-6xl px-4 py-6 text-xs text-muted">
         <span className="display text-sm uppercase text-ink-2">Pit<span className="text-brand-hot">Wall</span></span>{' '}
         · Probabilities come from 10,000 simulated races per prediction. Data: Jolpica &amp; FastF1.
         Independent fan project, not affiliated with Formula 1, the FIA or any team.

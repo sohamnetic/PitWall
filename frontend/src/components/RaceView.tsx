@@ -3,6 +3,7 @@ import { isNotFound, useRace, useSnapshot } from '../api/hooks'
 import type { PredictionRow, RaceDetail, Score, Snapshot, Stage } from '../api/types'
 import { BASELINE_LABEL, STAGE_LABEL, localTime, num, pct } from '../format'
 import { teamColor } from '../teams'
+import { useAccent } from '../accent'
 import { usePageTitle } from '../usePageTitle'
 import Countdown from './Countdown'
 import PositionHeatmap from './PositionHeatmap'
@@ -19,6 +20,8 @@ export default function RaceView({ raceId }: { raceId: string }) {
   const snap = useSnapshot(ids?.[stage])
   const other = useSnapshot(stage === 'post' ? ids?.pre : ids?.post)
   usePageTitle(race.data?.race.name)
+  // Floodlights take the favourite's team colour.
+  useAccent(snap.data ? teamColor(snap.data.rows[0]?.driver.team_id) : null)
 
   if (race.isPending) return <Loading what="race" />
   if (race.error) {
@@ -99,7 +102,9 @@ function RaceHero({ d }: { d: RaceDetail }) {
   const r = d.race
   const [place, ...rest] = r.name.replace(' Grand Prix', '|Grand Prix').split('|')
   return (
-    <section className="panel rise relative overflow-hidden p-5 sm:p-8">
+    <section className="panel rise relative overflow-hidden p-5 pt-7 sm:p-8 sm:pt-10">
+      <div className="kerb absolute inset-x-0 top-0" aria-hidden />
+      <div className="chequer pointer-events-none absolute right-0 top-0 h-40 w-64 opacity-[0.07]" aria-hidden />
       <div className="speed-stripes pointer-events-none absolute inset-0 opacity-70" aria-hidden />
       <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-brand/20 blur-3xl" aria-hidden />
       <div className="relative">
