@@ -331,7 +331,7 @@ def record() -> None:
 
 @app.command()
 def backtest(
-    seasons: str = typer.Option("2022-2026", help="Seasons to test on (trained on all earlier)."),
+    seasons: str = typer.Option("2018-2026", help="Seasons to test on (trained on all earlier)."),
     stage: str = typer.Option("both", help="pre, post or both."),
 ) -> None:
     """Walk-forward backtest: predict each race using only races before it."""

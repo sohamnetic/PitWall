@@ -27,6 +27,18 @@ log = logging.getLogger(__name__)
 # A session's timing data is usually published within an hour or two of the chequered flag.
 SESSION_DATA_DELAY = timedelta(hours=4)
 RATE_LIMIT_SLEEP_S = 5 * 60
+TIMING_HOST = "https://livetiming.formula1.com/static/"
+
+
+def _timing_reachable() -> bool:
+    """FastF1 logs network failures and returns no laps, which looks like a session without
+    data. Only trust "no data" when F1's timing server actually answers."""
+    import requests
+
+    try:
+        return requests.head(TIMING_HOST, timeout=10).status_code < 500
+    except requests.RequestException:
+        return False
 
 
 def parse_seasons(spec: str) -> list[int]:
@@ -163,7 +175,10 @@ def _ingest_one_session(s: ff.ScheduledSession) -> None:
             _save_record(record)
             return
 
-    if laps.empty:
+    if laps.empty and not _timing_reachable():
+        log.error("%s %s: no laps and the timing server is unreachable; will retry", rid, s.code)
+        record.update(status="error", error="timing server unreachable")
+    elif laps.empty:
         record["status"] = "no_data"
     else:
         path = ff.laps_path(s.season, s.round, s.code)

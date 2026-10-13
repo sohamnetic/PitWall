@@ -46,7 +46,7 @@ export default function ModelPerformance() {
       <PageHeader
         eyebrow="Is the model any good?"
         title="Track record"
-        subtitle="We replayed every race since 2022. Each time the model only knew what was known before that race, just like a real forecast. Here's how it did against the obvious guess."
+        subtitle={`We replayed every race since ${bt?.plain?.seasons[0]?.season ?? 'the backtest start'}. Each time the model only knew what was known before that race, just like a real forecast. Here's how it did against the obvious guess.`}
         actions={
           <Segmented
             label="Prediction stage"

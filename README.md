@@ -44,31 +44,34 @@ simple rules of thumb. It beats them.
 
 ## Results
 
-Walk-forward backtest over 108 races (2022–2026): every race is predicted by a model retrained
-on **only the races before it** (`f1p backtest`). Spearman = correlation of predicted vs actual
-finishing order; log-loss and Brier score judge the probabilities (lower is better).
+Walk-forward backtest over 190 races (2018–2026): every race is predicted by a model retrained
+on **only the races before it** (`f1p backtest`), so the 2018 races learn from 2014–2017 alone.
+Spearman = correlation of predicted vs actual finishing order; log-loss and Brier score judge the
+probabilities (lower is better).
 
 **After qualifying**
 
 | | Spearman | Winner right | Top-3 overlap | Win log-loss | Podium Brier | Points Brier |
 |---|---|---|---|---|---|---|
-| **Model** | **0.674** | **61%** | **67%** | **1.17** | **0.069** | **0.149** |
-| Grid order | 0.631 | 57% | 67% | 1.46 | 0.070 | 0.165 |
+| **Model** | **0.665** | **56%** | 67% | **1.31** | **0.068** | **0.154** |
+| Grid order | 0.626 | 54% | **69%** | 1.50 | 0.069 | 0.168 |
 
 **Before qualifying**
 
 | | Spearman | Winner right | Top-3 overlap | Win log-loss | Podium Brier | Points Brier |
 |---|---|---|---|---|---|---|
-| **Model** | **0.616** | 45% | 54% | **1.56** | **0.084** | **0.168** |
-| Championship order | 0.593 | **47%** | **57%** | 1.72 | 0.086 | 0.176 |
-| Fastest in practice | 0.596 | 44% | 52% | 1.78 | 0.091 | 0.173 |
-| Uniform (knows nothing) | ≈0 | – | 7% | 3.00 | 0.127 | 0.250 |
+| **Model** | **0.609** | 44% | 58% | **1.57** | **0.080** | **0.167** |
+| Team form | 0.593 | 44% | 56% | 1.84 | 0.086 | 0.177 |
+| Championship order | 0.588 | **45%** | **59%** | 1.74 | 0.082 | 0.178 |
+| Fastest in practice | 0.559 | 24% | 52% | 2.03 | 0.093 | 0.184 |
+| Uniform (knows nothing) | ≈0 | – | 13% | 3.00 | 0.127 | 0.250 |
 
 In plain terms: after qualifying, the model's order is closer to the result than "everyone
-finishes where they start" in 67 of 108 races (39 the other way, 2 ties), and in every one of the
-five seasons. The probabilities are calibrated: things it gives ~29% happen 29% of the time.
-Honest caveats: before qualifying, plain championship order still picks the winner a little
-more often, and in 2026 alone "fastest in practice" orders the field slightly better.
+finishes where they start" in 118 of 190 races (70 the other way, 2 ties), and in 8 of the 9
+seasons (2020, the COVID season, is the exception). Before qualifying it beats championship order
+in all 9. The probabilities are calibrated: things it gives ~30% happen 29–30% of the time.
+Honest caveats: grid order and championship order name the podium slightly more often, and
+championship order picks the winner a little more often before qualifying.
 
 ## How it works
 
@@ -110,7 +113,8 @@ flowchart LR
    chance of a **bad day** (first-lap damage, a penalty, a slow stop) that costs an
    exponentially distributed amount of pace; its rate and size are fitted on held-out races by
    the likelihood of every driver's actual finishing place (currently about 14–20% per driver
-   per race). That improved the backtest's log-loss on exact finishing places from 2.57 to 2.52.
+   per race). In the 2022–2026 backtest that improved the log-loss on exact finishing places from
+   2.57 to 2.52.
 6. **Live operation**: forecasts are immutable snapshots, flagged `live` (made before qualifying
    / the race) or `backfill`. Jolpica can lag a day, so qualifying and sprint classifications are
    rebuilt provisionally from lap timing and replaced by the official results when published.
@@ -143,7 +147,7 @@ npm run dev                         # http://localhost:5173, proxies /api to :80
 f1p ingest --seasons 2014-2026 --no-laps   # results, qualifying, calendar (~2 min)
 f1p ingest --seasons 2025-2026 --no-results # lap data for recent seasons
 f1p train                                   # pace + DNF models, both stages
-f1p backtest --seasons 2022-2026            # walk-forward evaluation (optional)
+f1p backtest --seasons 2018-2026            # walk-forward evaluation (optional)
 ```
 
 FastF1 allows ~500 requests/hour (≈60 sessions/hour), so lap data for **2018–2024 takes about
@@ -229,7 +233,7 @@ scripts/       icon generator, circuit-map builder
 ## Status
 
 - [x] 1. Project skeleton, CI
-- [x] 2. Data ingest (lap data: 2025–2026; 2018–2024 pending, see above)
+- [x] 2. Data ingest (results 2014+, lap data 2018+)
 - [x] 3. Point-in-time features with leakage tests
 - [x] 4. Baselines + walk-forward backtest
 - [x] 5. Ranker, DNF model, simulator, calibration

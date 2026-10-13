@@ -138,3 +138,18 @@ def test_weather_summary():
     s = weather_summary(w)
     assert s["air_temp"] == 31 and s["rainfall_frac"] == 0.5
     assert weather_summary(None) == {}
+
+
+@pytest.mark.parametrize("reachable, status", [(True, "no_data"), (False, "error")])
+def test_empty_session_is_no_data_only_when_timing_server_answers(monkeypatch, reachable, status):
+    # FastF1 swallows network errors and returns no laps; that must not be stored as a
+    # permanent "no data", or the session is never retried.
+    from f1p.data import ingest
+    from f1p.data.fastf1_loader import ScheduledSession
+
+    saved = []
+    monkeypatch.setattr(ingest.ff, "load_session", lambda s: (pd.DataFrame(), {}))
+    monkeypatch.setattr(ingest, "_timing_reachable", lambda: reachable)
+    monkeypatch.setattr(ingest, "_save_record", saved.append)
+    ingest._ingest_one_session(ScheduledSession(2019, 3, "FP1", "Practice 1", None))
+    assert [r["status"] for r in saved] == [status]
