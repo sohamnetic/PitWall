@@ -193,3 +193,14 @@ def test_truncate_removes_future_and_blanks_target(mini):
     target = t.results[(t.results.race_id == "2025-3") & (t.results.session == "R")]
     assert target["position_order"].isna().all() and target["grid"].isna().all()
     assert "2025-3" not in set(t.qualifying.race_id)
+
+
+def test_lap_file_accepts_windows_separators():
+    # Lap paths saved on Windows (laps\2026\01_FP1.parquet) must resolve on Linux too.
+    from f1p import config
+    from f1p.features.tables import lap_file
+
+    expected = config.DATA_DIR / "laps" / "2026" / "01_FP1.parquet"
+    assert lap_file(r"laps\2026\01_FP1.parquet") == expected
+    assert lap_file("laps/2026/01_FP1.parquet") == expected
+    assert "\\" not in lap_file(r"laps\2026\01_FP1.parquet").as_posix()

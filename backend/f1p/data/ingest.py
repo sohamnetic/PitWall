@@ -187,7 +187,7 @@ def _ingest_one_session(s: ff.ScheduledSession) -> None:
         record.update(
             status="ok",
             n_laps=len(laps),
-            laps_path=str(path.relative_to(config.DATA_DIR)),
+            laps_path=path.relative_to(config.DATA_DIR).as_posix(),
             **weather,
         )
     _save_record(record)

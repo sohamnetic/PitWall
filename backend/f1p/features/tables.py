@@ -12,6 +12,7 @@ History features (form, reliability, circuit record) only ever use earlier races
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Literal
 
 import pandas as pd
@@ -36,7 +37,13 @@ class Tables:
     drivers: pd.DataFrame  # id, code
 
     def laps(self, laps_path: str) -> pd.DataFrame:
-        return pd.read_parquet(config.DATA_DIR / laps_path)
+        return pd.read_parquet(lap_file(laps_path))
+
+
+def lap_file(laps_path: str) -> Path:
+    """Absolute path of a stored lap file. Paths saved on Windows use backslashes, which Linux
+    reads as part of the file name, so normalise them (Windows accepts forward slashes)."""
+    return config.DATA_DIR / laps_path.replace("\\", "/")
 
 
 def load_tables(engine: Engine | None = None) -> Tables:

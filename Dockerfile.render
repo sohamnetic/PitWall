@@ -13,7 +13,7 @@ COPY frontend/ ./
 RUN npm run build
 
 # ---- runtime ----
-FROM python:3.12-slim
+FROM python:3.10-slim
 # LightGBM needs the OpenMP runtime.
 RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 \
     && rm -rf /var/lib/apt/lists/*
@@ -34,9 +34,9 @@ ARG DATA_URL=https://raw.githubusercontent.com/sohamnetic/PitWall/deploy-data/pi
 ADD ${DATA_URL} /tmp/pitwall-data.tar.gz
 # Models are retrained here rather than unpickled: the archive's pickles come from whatever
 # Python and library versions built them.
-RUN useradd --create-home --uid 1000 f1 \
-    && mkdir -p /data && tar -xzf /tmp/pitwall-data.tar.gz -C /data && rm /tmp/pitwall-data.tar.gz \
-    && f1p train && chown -R f1 /data
+RUN mkdir -p /data && tar -xzf /tmp/pitwall-data.tar.gz -C /data && rm /tmp/pitwall-data.tar.gz
+RUN f1p train
+RUN useradd --create-home --uid 1000 f1 && chown -R f1 /data
 USER f1
 
 EXPOSE 10000
