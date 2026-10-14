@@ -26,3 +26,4 @@ Thumbs.db
 
 # Built by scripts/pack_data.py, published on the deploy-data branch
 deploy/*.tar.gz
+build/
