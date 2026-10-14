@@ -192,6 +192,22 @@ docker compose run --rm app f1p train
 
 Data lives in `./data` (mounted at `/data`). CI builds the image and smoke-tests it.
 
+### Free hosting: Vercel + Render
+
+No card needed. The site runs on **Vercel** and the API on **Render's free plan**.
+
+- **Render** (API): New → Blueprint → this repository. `render.yaml` creates the `pitwall-api`
+  service from `Dockerfile.render`. The free plan has no persistent disk, so the image bakes in
+  a data snapshot from the `deploy-data` branch and retrains the models during the build.
+  Free services sleep after 15 minutes idle (about a minute to wake, and the app says so), and
+  runtime writes such as game picks are lost on restart.
+- **Vercel** (site): import this repository with **Root Directory `frontend`**. `vercel.json`
+  builds with `--mode vercel`, which points the app at the API address in
+  `frontend/.env.vercel`. The API allows `https://pitwall*.vercel.app` origins
+  (`F1P_CORS_ORIGIN_REGEX`).
+- **Updating the data** after a race weekend: run `f1p auto` locally, then
+  `bash scripts/publish_data.sh` and redeploy the Render service.
+
 ## API
 
 Interactive docs at `/docs` (dev) or `/api/docs` (production).

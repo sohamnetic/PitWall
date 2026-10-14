@@ -6,8 +6,11 @@ export class ApiError extends Error {
   }
 }
 
+/** Same-origin `/api` by default; a hosted frontend (Vercel) points at the API's own address. */
+export const API_BASE = import.meta.env.VITE_API_BASE ?? '/api'
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`/api${path}`, init)
+  const res = await fetch(`${API_BASE}${path}`, init)
   if (!res.ok) {
     let detail = `${res.status} ${res.statusText}`
     try {

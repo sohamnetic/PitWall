@@ -54,3 +54,23 @@ jobs:
           curl -fs http://localhost:8000/api/health
           curl -fs http://localhost:8000/ | grep -q '<div id="root">'
           docker logs app
+
+  # The image Render's free tier runs: data baked in from the deploy-data branch, models
+  # retrained during the build. Checks it serves real predictions on the PORT Render sets.
+  docker-render:
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -f Dockerfile.render -t pitwall-render .
+      - name: Smoke test the image
+        run: |
+          docker run -d --name app -e PORT=10000 -p 10000:10000 pitwall-render
+          for i in $(seq 1 30); do
+            curl -fs http://localhost:10000/api/health && break
+            sleep 2
+          done
+          curl -fs http://localhost:10000/api/health
+          curl -fs http://localhost:10000/api/seasons/2026/standings | grep -q '"drivers"'
+          curl -fs http://localhost:10000/api/performance | grep -q '"plain"'
+          docker logs app

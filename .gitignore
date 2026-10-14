@@ -23,3 +23,6 @@ Thumbs.db
 # Local tooling
 .claude/
 *.log
+
+# Built by scripts/pack_data.py, published on the deploy-data branch
+deploy/*.tar.gz

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import type { DriverRef } from '../api/types'
 import { chance } from '../format'
@@ -175,9 +175,21 @@ export function DriverLabel({ driver, showName = true, link = true }: { driver: 
 }
 
 export function Loading({ what = 'data' }: { what?: string }) {
+  // A free-tier API host sleeps when idle; after a few seconds, say so instead of looking stuck.
+  const [slow, setSlow] = useState(false)
+  useEffect(() => {
+    const id = window.setTimeout(() => setSlow(true), 4000)
+    return () => window.clearTimeout(id)
+  }, [])
   return (
     <div role="status" aria-live="polite" className="space-y-4 py-2">
       <span className="sr-only">Loading {what}…</span>
+      {slow && (
+        <p className="rise flex items-center gap-2 text-sm text-ink-2">
+          <span className="live-dot h-2 w-2 rounded-full bg-brand-hot" aria-hidden />
+          Waking up the server. After a quiet spell this can take up to a minute.
+        </p>
+      )}
       <div className="h-9 w-2/3 max-w-md animate-pulse rounded-lg bg-hover" />
       <div className="h-4 w-1/2 max-w-xs animate-pulse rounded bg-hover" />
       <div className="grid gap-4 sm:grid-cols-3">

@@ -144,3 +144,28 @@ def test_standings(client):
         assert 0 < len(d["form"]) <= 5
     assert len(s["rounds"]) == len(s["driver_progression"][drivers[0]["driver"]["id"]])
     assert client.get("/seasons/1999/standings").status_code == 404
+
+
+def test_cors_allows_configured_frontend_origins(monkeypatch):
+    import importlib
+
+    import f1p.api.main as main
+
+    monkeypatch.setenv("F1P_CORS_ORIGIN_REGEX", r"https://pitwall[a-z0-9-]*\.vercel\.app")
+    monkeypatch.setenv("F1P_CORS_ORIGINS", "https://pitwall.example.org")
+    app = importlib.reload(main).app
+    try:
+        c = TestClient(app)
+        for origin, allowed in [
+            ("https://pitwall.vercel.app", True),
+            ("https://pitwall-git-main-someone.vercel.app", True),
+            ("https://pitwall.example.org", True),
+            ("http://localhost:5173", True),
+            ("https://evil.vercel.app", False),
+        ]:
+            headers = c.get("/health", headers={"Origin": origin}).headers
+            assert (headers.get("access-control-allow-origin") == origin) is allowed, origin
+    finally:
+        monkeypatch.delenv("F1P_CORS_ORIGIN_REGEX")
+        monkeypatch.delenv("F1P_CORS_ORIGINS")
+        importlib.reload(main)

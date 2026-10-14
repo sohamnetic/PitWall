@@ -1,0 +1,14 @@
+# Render Blueprint: the PitWall API (and a copy of the site) on the free plan.
+# Render dashboard -> New -> Blueprint -> pick this repository.
+services:
+  - type: web
+    name: pitwall-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile.render
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      # The Vercel-hosted frontend (production and preview URLs) may call the API.
+      - key: F1P_CORS_ORIGIN_REGEX
+        value: https://pitwall[a-z0-9-]*\.vercel\.app

@@ -6,7 +6,7 @@
 // - Page navigations: network-first, falling back to the cached app shell.
 // POST/PUT (simulations, picks) are never cached.
 
-const VERSION = 'v3' // bump to drop old caches (v3: standings, circuit maps)
+const VERSION = 'v4' // bump to drop old caches (v4: separate API host)
 const SHELL = `shell-${VERSION}`
 const ASSETS = `assets-${VERSION}`
 const API = `api-${VERSION}`
@@ -56,11 +56,14 @@ self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
   const url = new URL(request.url)
-  if (url.origin !== self.location.origin) return
-
+  // API calls may go to a separate API host (a hosted frontend talking to its backend).
   if (url.pathname.startsWith('/api/')) {
     event.respondWith(networkFirst(request, API))
-  } else if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
+    return
+  }
+  if (url.origin !== self.location.origin) return
+
+  if (url.pathname.startsWith('/assets/') || url.pathname.startsWith('/icons/')) {
     event.respondWith(cacheFirst(request))
   } else if (request.mode === 'navigate') {
     event.respondWith(
