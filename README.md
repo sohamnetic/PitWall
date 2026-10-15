@@ -203,7 +203,7 @@ No card needed. The site runs on **Vercel** and the API on **Render's free plan*
   runtime writes such as game picks are lost on restart.
 - **Vercel** (site): import this repository with **Root Directory `frontend`**. `vercel.json`
   builds with `--mode vercel`, which points the app at the API address in
-  `frontend/.env.vercel`. The API allows `https://pitwall*.vercel.app` origins
+  `frontend/.env.vercel`. The API allows `https://pitwall*.vercel.app` and `https://pit-wall*.vercel.app` origins
   (`F1P_CORS_ORIGIN_REGEX`).
 - **Updating the data** after a race weekend: run `f1p auto` locally, then
   `bash scripts/publish_data.sh` and redeploy the Render service.
