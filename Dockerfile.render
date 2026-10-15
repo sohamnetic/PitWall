@@ -25,17 +25,24 @@ RUN pip install --no-cache-dir ./backend
 
 COPY --from=web /web/dist /app/frontend/dist
 
+# One thread each: shared hosts report many cores but grant a fraction of one, and
+# OpenMP / BLAS / joblib starting a thread per reported core makes them crawl.
 ENV F1P_DATA_DIR=/data \
     F1P_STATIC_DIR=/app/frontend/dist \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    LOKY_MAX_CPU_COUNT=1
 
 # ADD re-downloads when the archive changes, so a data update busts the cache from here on.
 ARG DATA_URL=https://raw.githubusercontent.com/sohamnetic/PitWall/deploy-data/pitwall-data.tar.gz
 ADD ${DATA_URL} /tmp/pitwall-data.tar.gz
-# Models are retrained here rather than unpickled: the archive's pickles come from whatever
-# Python and library versions built them.
 RUN mkdir -p /data && tar -xzf /tmp/pitwall-data.tar.gz -C /data && rm /tmp/pitwall-data.tar.gz
-RUN f1p train
+# Use the archive's trained models (this image matches the Python 3.10 they were built with);
+# retrain only if they don't load here.
+RUN python -c "from f1p.models.race_model import RaceModel; [RaceModel.load(s) for s in ('pre', 'post')]" \
+    || f1p train
 RUN useradd --create-home --uid 1000 f1 && chown -R f1 /data
 USER f1
 
